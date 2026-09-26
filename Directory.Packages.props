@@ -45,7 +45,7 @@
 
     <!-- Email -->
     <PackageVersion Include="MailKit" Version="4.7.1.1" />
-    <PackageVersion Include="MimeKit" Version="4.7.1" />
+    <PackageVersion Include="MimeKit" Version="4.18.1" />
 
     <!-- Object storage -->
     <PackageVersion Include="AWSSDK.S3" Version="3.7.305" />
