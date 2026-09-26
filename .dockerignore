@@ -1,0 +1,57 @@
+## Build outputs
+bin/
+obj/
+out/
+publish/
+TestResults/
+.vs/
+.idea/
+.vscode/
+
+## Source control
+.git/
+.gitignore
+.gitattributes
+
+## Documentation (kept in repo but not needed in container)
+docs/
+*.md
+!src/**/README.md
+
+## Local config / secrets
+.env
+.env.*
+appsettings.*.local.json
+secrets.json
+secrets/
+
+## Runtime data (mounted as volumes, not baked into image)
+/data/
+/personal-crm.db
+*.db
+*.db-*
+/attachments/
+/keys/
+
+## Tests (not shipped in runtime image)
+tests/
+**/*Tests.csproj
+**/*.Tests/
+**/*.Test/
+
+## CI
+.github/
+
+## Docker
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+## Misc
+node_modules/
+*.log
+logs/
+*.tmp
+*.swp
+.DS_Store
+Thumbs.db

@@ -1,0 +1,68 @@
+name: Feature request
+description: Propose a new feature or change.
+labels: ["enhancement", "triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before opening a feature request, please check:
+        - The [roadmap](../blob/main/ROADMAP.md) — it might already be planned.
+        - The [open RFCs](../discussions/categories/rfcs) — it might be in progress.
+        - Existing issues — search before duplicating.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: "The 'why' — the user pain or use case. Be specific."
+      placeholder: |
+        As a freelancer with 200+ client contacts, I lose track of who I
+        haven't emailed in 6 months. I want a single dashboard widget that
+        lists them.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: "Sketch of how this would work. Optional: links, mockups, code paths."
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: "What else did you consider? Why is your proposal better?"
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - "Small — UI tweak, config option, or localized fix"
+        - "Medium — touches one domain (e.g. contacts) end-to-end"
+        - "Large — cross-cutting (e.g. offline sync, multi-user)"
+        - "RFC needed — affects architecture or public API"
+
+  - type: dropdown
+    id: willingness
+    attributes:
+      label: Are you willing to submit a PR?
+      options:
+        - "Yes, I'd like to implement this"
+        - "Yes, with guidance"
+        - "No, just proposing"
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Self-check
+      options:
+        - label: I searched existing issues and discussions
+          required: true
+        - label: This aligns with the project's stated principles (privacy, self-host, free OSS)
+          required: true

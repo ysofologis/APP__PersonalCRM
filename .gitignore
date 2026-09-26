@@ -1,0 +1,58 @@
+## .NET / Visual Studio / Rider
+bin/
+obj/
+out/
+*.user
+*.suo
+*.userprefs
+*.swp
+*.tmp
+*.cache
+*.cachefile
+*.dll
+*.exe
+*.pdb
+*.nupkg
+*.snupkg
+*.coverage
+*.coveragexml
+TestResults/
+[Tt]est[Rr]esult*/
+.vs/
+.idea/
+.vscode/
+*.code-workspace
+
+## Project data (never commit; lives on the host)
+/data/
+/personal-crm.db
+/personal-crm.db-wal
+/personal-crm.db-shm
+/personal-crm.db-journal
+*.db
+*.db-*
+/attachments/
+/keys/
+
+## Secrets
+*.env
+.env
+.env.local
+appsettings.*.local.json
+secrets.json
+secrets/
+/secrets.json
+
+## OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+## Logs
+*.log
+logs/
+
+## Build artifacts
+publish/
+dist/
+artifacts/

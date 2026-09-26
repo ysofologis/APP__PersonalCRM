@@ -1,0 +1,51 @@
+@page "/"
+
+<PageTitle>Personal CRM</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="pa-6">
+    <MudStack Spacing="4">
+        <MudText Typo="Typo.h3">Personal CRM</MudText>
+        <MudText Typo="Typo.subtitle1">
+            A multi-user, self-hosted, PWA-first personal CRM.
+        </MudText>
+
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+            ⚠️ <strong>Pre-alpha.</strong> Not ready for production use.
+            See <MudLink Href="https://github.com/&lt;org&gt;/personal-crm/blob/main/ROADMAP.md" Target="_blank">ROADMAP.md</MudLink>
+            for what's shipping when.
+        </MudAlert>
+
+        <MudGrid Spacing="3">
+            <MudItem xs="12" md="4">
+                <MudCard Outlined="true">
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6">Your data, your hardware</MudText>
+                        <MudText Typo="Typo.body2">
+                            Self-hosted. SQLite by default. S3-compatible attachments when you outgrow the local filesystem.
+                        </MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudCard Outlined="true">
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6">Works offline</MudText>
+                        <MudText Typo="Typo.body2">
+                            Installable PWA. Service Worker caches recent contacts and replays your writes the moment you're back online.
+                        </MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudCard Outlined="true">
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6">Free and open source</MudText>
+                        <MudText Typo="Typo.body2">
+                            Apache 2.0. No paid features. No "enterprise edition". Funded by sponsorships and an optional hosted cloud.
+                        </MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+    </MudStack>
+</MudContainer>

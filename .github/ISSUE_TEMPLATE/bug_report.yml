@@ -1,0 +1,96 @@
+name: Bug report
+description: Report a bug or unexpected behavior.
+labels: ["bug", "triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing a bug. Please fill in the sections below.
+        **Security issues go to security@personal-crm.example, not here.**
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: How broken is it for you?
+      options:
+        - "Critical — data loss or security"
+        - "High — feature unusable, workaround exists"
+        - "Medium — feature partially broken"
+        - "Low — cosmetic or minor"
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The exact commit hash or tag you ran.
+      placeholder: "v0.1.0-abc1234 or 'main @ 2026-09-26'"
+    validations:
+      required: true
+
+  - type: input
+    id: install_method
+    attributes:
+      label: Install method
+      placeholder: "docker compose / dotnet run / k8s / …"
+    validations:
+      required: true
+
+  - type: textarea
+    id: what_happened
+    attributes:
+      label: What happened?
+      description: A clear, concise description of the bug.
+      placeholder: |
+        When I click "Save" on a contact, the page shows a 500 error.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Numbered steps, ideally with the smallest possible case.
+      placeholder: |
+        1. Go to /contacts/new
+        2. Fill in name "Ada Lovelace"
+        3. Click Save
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs, screenshots, or output
+      description: Stack traces, container logs, browser console messages, etc.
+      render: shell
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, browser, .NET version, SQLite/Postgres, S3/local, etc.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Self-check
+      options:
+        - label: I searched existing issues and didn't find a duplicate
+          required: true
+        - label: I'm running the latest commit on the relevant branch
+          required: true
+        - label: This is **not** a security vulnerability (those go to security@personal-crm.example)
+          required: true
