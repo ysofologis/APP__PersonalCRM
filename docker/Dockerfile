@@ -33,7 +33,7 @@ RUN dotnet publish "src/PersonalCrm.App/PersonalCrm.App.csproj" \
 ############################
 # Stage 2 — runtime
 ############################
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
 # Non-root user for runtime
