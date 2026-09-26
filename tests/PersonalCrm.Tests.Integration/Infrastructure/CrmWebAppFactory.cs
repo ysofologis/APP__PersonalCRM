@@ -12,7 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 using PersonalCrm.Core.Domain;
 using PersonalCrm.Infrastructure.Persistence;
 using PersonalCrm.Infrastructure.Persistence.WorkspaceContext;
-using PersonalCrm.Shared.Dtos;
+using PersonalCrm.Contracts.Dtos;
 
 namespace PersonalCrm.Tests.Integration.Infrastructure;
 

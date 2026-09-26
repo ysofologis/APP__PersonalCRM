@@ -1,4 +1,4 @@
-namespace PersonalCrm.Shared.Dtos;
+namespace PersonalCrm.Contracts.Dtos;
 
 public enum InteractionKindDto
 {

@@ -54,7 +54,7 @@ public static class Program
             return command switch
             {
                 "update"  => await UpdateAsync(db),
-                "list"    => await ListAsync(db),
+                "list"    => ListAsync(db),
                 "script"  => await ScriptAsync(db, args),
                 "drop"    => await DropAsync(db),
                 "help" or "--help" or "-h" => PrintHelp(),
@@ -83,10 +83,12 @@ public static class Program
         return 0;
     }
 
-    private static async Task<int> ListAsync(AppDbContext db)
+    private static int ListAsync(AppDbContext db)
     {
-        var applied   = (await db.Database.GetAppliedMigrationsAsync()).ToList();
-        var migrations = (await db.Database.GetMigrationsAsync()).ToList();
+        // EF Core 10 dropped the *Async variants of the migration-listing
+        // helpers — use the synchronous ones from RelationalDatabaseFacadeExtensions.
+        var applied    = db.Database.GetAppliedMigrations().ToList();
+        var migrations = db.Database.GetMigrations().ToList();
         Console.WriteLine("Migrations:");
         foreach (var m in migrations)
         {
@@ -99,7 +101,8 @@ public static class Program
     private static async Task<int> ScriptAsync(AppDbContext db, string[] args)
     {
         var output = args.Length > 1 ? args[1] : "migrations.sql";
-        var script = await db.Database.GenerateCreateScriptAsync();
+        // EF Core 10: GenerateCreateScript is sync only.
+        var script = db.Database.GenerateCreateScript();
         await File.WriteAllTextAsync(output, script);
         Console.WriteLine($"Wrote {output} ({script.Length:N0} chars).");
         return 0;

@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
-using PersonalCrm.Shared.Dtos;
+using PersonalCrm.Contracts.Dtos;
 using PersonalCrm.Tests.Integration.Infrastructure;
 using Xunit;
 

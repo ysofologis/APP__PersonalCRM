@@ -19,8 +19,8 @@ public static class AuthServiceCollectionExtensions
         // IHttpContextAccessor is required by HttpWorkspaceContext.
         services.AddHttpContextAccessor();
 
-        // Password hasher is stateless — singleton is fine.
-        services.AddSingleton<PasswordHasher>();
+        // PasswordHasher is a static class (no instance state) — call its
+        // methods directly. No DI registration needed.
 
         // Workspace context is per-request, populated from ClaimsPrincipal.
         services.AddScoped<IWorkspaceContext, HttpWorkspaceContext>();

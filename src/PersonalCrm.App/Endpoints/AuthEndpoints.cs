@@ -39,7 +39,6 @@ public static class AuthEndpoints
     private static async Task<IResult> SetupAsync(
         SetupRequest request,
         AppDbContext db,
-        PasswordHasher hasher,
         HttpContext http,
         CancellationToken ct)
     {
@@ -117,7 +116,6 @@ public static class AuthEndpoints
     private static async Task<IResult> LoginAsync(
         LoginRequest request,
         AppDbContext db,
-        PasswordHasher hasher,
         HttpContext http,
         CancellationToken ct)
     {

@@ -1,4 +1,4 @@
-namespace PersonalCrm.Shared.Dtos;
+namespace PersonalCrm.Contracts.Dtos;
 
 /// <summary>
 /// Wire-shape for a <c>Contact</c> shared between Server (API response) and

@@ -77,7 +77,7 @@ public class S3AttachmentStore : IAttachmentStore
         CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
-        var request = new GetPreSignedURLRequest
+        var request = new GetPreSignedUrlRequest
         {
             BucketName  = _options.Bucket,
             Key         = key,

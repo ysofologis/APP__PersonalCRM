@@ -15,7 +15,7 @@ namespace PersonalCrm.Infrastructure.Security;
 /// Parameters: memory=64 MiB, iterations=3, parallelism=4. Tuned for a server
 /// doing one hash at a time on commodity hardware (~250 ms per verify).
 /// </summary>
-public sealed class PasswordHasher
+public static class PasswordHasher
 {
     // Recommended minimum for argon2id (OWASP Password Storage Cheat Sheet, 2024).
     private const int MemoryKiB  = 64 * 1024;   // 64 MiB
@@ -25,7 +25,7 @@ public sealed class PasswordHasher
     private const int HashBytes  = 32;          // 256 bits
 
     /// <summary>Hashes a UTF-8 password into a PHC-format string.</summary>
-    public string Hash(string password)
+    public static string Hash(string password)
     {
         ArgumentException.ThrowIfNullOrEmpty(password);
 
@@ -46,7 +46,7 @@ public sealed class PasswordHasher
     /// comparison avoids timing leaks. Returns false on any parse error
     /// (treats malformed hashes as no-match, never as "throw").
     /// </summary>
-    public bool Verify(string password, string encoded)
+    public static bool Verify(string password, string encoded)
     {
         ArgumentException.ThrowIfNullOrEmpty(password);
         ArgumentException.ThrowIfNullOrEmpty(encoded);

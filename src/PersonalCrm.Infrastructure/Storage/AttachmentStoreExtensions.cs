@@ -1,6 +1,9 @@
+using Amazon;
+using Amazon.Runtime;
 using Amazon.S3;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace PersonalCrm.Infrastructure.Storage;
 
@@ -33,16 +36,17 @@ public static class AttachmentStoreExtensions
 
             var config = new AmazonS3Config
             {
-                RegionEndpoint          = Amazon.RegionEndpoint.GetBySystemName(opts.Region),
-                ForcePathStyle          = opts.ForcePathStyle,
-                ServiceURL              = string.IsNullOrWhiteSpace(opts.Endpoint) ? null : opts.Endpoint,
-                UseHttp                 = opts.Endpoint?.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ?? false
+                RegionEndpoint = Amazon.RegionEndpoint.GetBySystemName(opts.Region),
+                ForcePathStyle = opts.ForcePathStyle,
+                ServiceURL     = string.IsNullOrWhiteSpace(opts.Endpoint) ? null : opts.Endpoint,
+                UseHttp        = opts.Endpoint?.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ?? false
             };
 
-            return new AmazonS3Client(
-                string.IsNullOrWhiteSpace(opts.AccessKey) ? null : opts.AccessKey,
-                string.IsNullOrWhiteSpace(opts.SecretKey) ? null : opts.SecretKey,
-                config);
+            var credentials = new BasicAWSCredentials(
+                string.IsNullOrWhiteSpace(opts.AccessKey) ? string.Empty : opts.AccessKey,
+                string.IsNullOrWhiteSpace(opts.SecretKey) ? string.Empty : opts.SecretKey);
+
+            return new AmazonS3Client(credentials, config);
         });
 
         // Provider selection. Done at registration time based on the bound

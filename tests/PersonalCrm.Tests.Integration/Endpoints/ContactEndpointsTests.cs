@@ -4,7 +4,7 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using PersonalCrm.Core.Domain;
 using PersonalCrm.Infrastructure.Persistence;
-using PersonalCrm.Shared.Dtos;
+using PersonalCrm.Contracts.Dtos;
 using PersonalCrm.Tests.Integration.Infrastructure;
 using Xunit;
 

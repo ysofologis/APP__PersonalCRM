@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>PersonalCrm.Core</RootNamespace>
     <AssemblyName>PersonalCrm.Core</AssemblyName>
     <Description>Domain entities, value objects, and domain services. Zero infrastructure dependencies.</Description>

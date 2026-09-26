@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using PersonalCrm.Core.Domain;
 
 namespace PersonalCrm.Infrastructure.Persistence.WorkspaceContext;
 
