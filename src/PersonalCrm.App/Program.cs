@@ -225,6 +225,20 @@ public class Program
         // ApiClient itself consumes IHttpClientFactory + NavigationManager
         // (both scoped) and resolves the base address at the moment of each
         // call. So we just register the factory here.
+        // A named client that never proxies. `AddHttpClient()`'s default
+        // handler honours the HTTP_PROXY / HTTPS_PROXY environment variables,
+        // and this dev host exports HTTP_PROXY=squid-proxy:3128. That made
+        // every same-origin /api/* call from Blazor go out through Squid,
+        // which cannot resolve *our* loopback and answered with a bare
+        //   503 Service Unavailable / X-Squid-Error: ERR_CONNECT_FAIL
+        // instead of reaching Kestrel. curl was unaffected because the shell
+        // that ran it had no proxy variables set, which is what made this
+        // look like a browser-only bug.
+        services.AddHttpClient("app-internal")
+                .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+                {
+                    UseProxy = false,
+                });
         services.AddHttpClient();
 
         services.AddScoped<ApiClient>();

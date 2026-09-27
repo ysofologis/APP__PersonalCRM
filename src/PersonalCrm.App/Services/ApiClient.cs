@@ -31,6 +31,11 @@ public sealed class ApiClient
         _nav         = nav;
     }
 
+    // Named client registered in Program.cs with UseProxy = false, so
+    // same-origin /api/* calls always reach our own Kestrel even when the
+    // environment exports HTTP_PROXY (this dev host does).
+    private const string HttpClientName = "app-internal";
+
     /// <summary>
     /// Resolves <see cref="NavigationManager.BaseUri"/> once and caches it. The
     /// Blazor navigation manager can briefly report <c>about:blank</c> or an
@@ -66,7 +71,7 @@ public sealed class ApiClient
     /// </summary>
     private HttpClient BuildClient()
     {
-        var http = _httpFactory.CreateClient();
+        var http = _httpFactory.CreateClient(HttpClientName);
         if (http.BaseAddress is null)
         {
             http.BaseAddress = ResolveBaseAddress();
