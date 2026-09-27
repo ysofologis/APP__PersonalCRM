@@ -19,6 +19,7 @@ public sealed class ApiClient
 {
     private readonly IHttpClientFactory _httpFactory;
     private readonly NavigationManager  _nav;
+    private          Uri?               _baseAddress;
 
     public string? AccessToken { get; set; }
     public Guid?   UserId      { get; set; }
@@ -28,6 +29,33 @@ public sealed class ApiClient
     {
         _httpFactory = httpFactory;
         _nav         = nav;
+    }
+
+    /// <summary>
+    /// Resolves <see cref="NavigationManager.BaseUri"/> once and caches it. The
+    /// Blazor navigation manager can briefly report <c>about:blank</c> or an
+    /// empty URI during prerender, so we resolve lazily and throw a clear
+    /// <see cref="InvalidOperationException"/> if the URI is unusable — much
+    /// easier to diagnose than a 404 from a malformed request URL.
+    /// </summary>
+    private Uri ResolveBaseAddress()
+    {
+        if (_baseAddress is not null) return _baseAddress;
+
+        var raw = _nav.BaseUri;
+        if (string.IsNullOrWhiteSpace(raw) || raw == "about:blank")
+        {
+            throw new InvalidOperationException(
+                $"NavigationManager.BaseUri is '{raw}'; cannot resolve an absolute base address for /api/* calls. " +
+                "This usually means the component is being prerendered before the circuit is established — " +
+                "guard ApiClient calls behind IComponentRenderer's OnAfterRenderAsync or render-mode Interactive.");
+        }
+
+        // Always end with a trailing slash so relative URIs like "api/setup"
+        // resolve correctly when combined with the base address.
+        var normalised = raw.EndsWith('/') ? raw : raw + "/";
+        _baseAddress   = new Uri(normalised);
+        return _baseAddress;
     }
 
     /// <summary>
@@ -41,7 +69,7 @@ public sealed class ApiClient
         var http = _httpFactory.CreateClient();
         if (http.BaseAddress is null)
         {
-            http.BaseAddress = new Uri(_nav.BaseUri);
+            http.BaseAddress = ResolveBaseAddress();
         }
         return http;
     }
@@ -50,10 +78,10 @@ public sealed class ApiClient
     public async Task<SetupResponse> SetupAsync(SetupRequest req, CancellationToken ct = default)
     {
         using var http = BuildClient();
-        var resp = await http.PostAsJsonAsync("api/setup", req, ct);
+        var resp = await http.PostAsJsonAsync("/api/setup", req, ct);
         if (!resp.IsSuccessStatusCode)
         {
-            throw await ToExceptionAsync(resp, ct);
+            throw await ToExceptionAsync(resp, "/api/setup", ct);
         }
         var body = await resp.Content.ReadFromJsonAsync<SetupResponse>(cancellationToken: ct);
         UserId      = body!.UserId;
@@ -65,10 +93,10 @@ public sealed class ApiClient
     public async Task<SetupStatus> GetSetupStatusAsync(CancellationToken ct = default)
     {
         using var http = BuildClient();
-        var resp = await http.GetAsync("api/setup/status", ct);
+        var resp = await http.GetAsync("/api/setup/status", ct);
         if (!resp.IsSuccessStatusCode)
         {
-            throw await ToExceptionAsync(resp, ct);
+            throw await ToExceptionAsync(resp, "/api/setup/status", ct);
         }
         return (await resp.Content
             .ReadFromJsonAsync<SetupStatus>(cancellationToken: ct))!;
@@ -84,10 +112,14 @@ public sealed class ApiClient
         using var http = BuildClient();
         var req  = new HttpRequestMessage(
             HttpMethod.Get,
-            $"api/workspaces/{workspaceId}/contacts?limit={limit}&offset={offset}");
+            $"/api/workspaces/{workspaceId}/contacts?limit={limit}&offset={offset}");
         AddAuthHeader(req);
         var resp = await http.SendAsync(req, ct);
-        if (!resp.IsSuccessStatusCode) throw await ToExceptionAsync(resp, ct);
+        if (!resp.IsSuccessStatusCode)
+        {
+            throw await ToExceptionAsync(
+                resp, $"/api/workspaces/{workspaceId}/contacts?limit={limit}&offset={offset}", ct);
+        }
         return (await resp.Content
             .ReadFromJsonAsync<ListContactsResponse>(cancellationToken: ct))!;
     }
@@ -114,7 +146,8 @@ public sealed class ApiClient
 
     private static async Task<ApiException> ToExceptionAsync(
         HttpResponseMessage resp,
-        CancellationToken ct)
+        string              path,
+        CancellationToken   ct)
     {
         try
         {
@@ -122,7 +155,7 @@ public sealed class ApiClient
                 .ReadFromJsonAsync<ApiError>(cancellationToken: ct);
             if (err is not null)
             {
-                return new ApiException(err.Code, err.Message, (int)resp.StatusCode);
+                return new ApiException(err.Code, err.Message, (int)resp.StatusCode, path);
             }
         }
         catch
@@ -130,10 +163,14 @@ public sealed class ApiClient
             // Fall through to the generic envelope below.
         }
 
+        // Generic envelope: include the path so the failure message points at
+        // the exact endpoint that was attempted (e.g. when the response body
+        // is empty or HTML rather than the structured ApiError envelope).
         return new ApiException(
             "http_error",
-            $"Request failed with status {(int)resp.StatusCode}.",
-            (int)resp.StatusCode);
+            $"Request failed with status {(int)resp.StatusCode} for {path}.",
+            (int)resp.StatusCode,
+            path);
     }
 }
 
@@ -141,11 +178,18 @@ public sealed class ApiException : Exception
 {
     public string  Code       { get; }
     public int     StatusCode { get; }
+    public string? Path       { get; }
 
     public ApiException(string code, string message, int statusCode)
+        : this(code, message, statusCode, path: null)
+    {
+    }
+
+    public ApiException(string code, string message, int statusCode, string? path)
         : base(message)
     {
         Code       = code;
         StatusCode = statusCode;
+        Path       = path;
     }
 }
