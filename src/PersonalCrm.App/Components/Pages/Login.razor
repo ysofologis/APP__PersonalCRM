@@ -1,0 +1,127 @@
+@page "/login"
+@using PersonalCrm.App.Services
+@using PersonalCrm.Contracts.Dtos
+@inject ApiClient        Api
+@inject ISnackbar         Snackbar
+@inject NavigationManager Nav
+
+<PageTitle>Sign in — Personal CRM</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="pa-6">
+    <MudStack Spacing="4">
+        <MudStack Spacing="1">
+            <MudText Typo="Typo.h4">Sign in</MudText>
+            <MudText Typo="Typo.body1">
+                Use the email and password you created during setup. If this is a freshly
+                bootstrapped dev instance, the defaults are
+                <strong>admin@example.com</strong> / <code>11111111</code>.
+            </MudText>
+        </MudStack>
+
+        <MudPaper Outlined="true" Class="pa-4">
+            <MudForm @ref="_form" @bind-IsValid="_formValid">
+                <MudStack Spacing="3">
+
+                    <MudTextField T="string"
+                                  Label="Email"
+                                  Required="true"
+                                  RequiredError="Email is required."
+                                  InputType="InputType.Email"
+                                  @bind-Value="_email"
+                                  Variant="Variant.Outlined" />
+
+                    <MudTextField T="string"
+                                  Label="Password"
+                                  Required="true"
+                                  RequiredError="Password is required."
+                                  InputType="@(_showPassword ? InputType.Text : InputType.Password)"
+                                  Adornment="Adornment.End"
+                                  AdornmentIcon="@(_showPassword ? Icons.Material.Filled.Visibility : Icons.Material.Filled.VisibilityOff)"
+                                  OnAdornmentClick="@(() => _showPassword = !_showPassword)"
+                                  @bind-Value="_password"
+                                  Variant="Variant.Outlined" />
+
+                    @if (!string.IsNullOrEmpty(_error))
+                    {
+                        <MudAlert Severity="Severity.Error" Variant="Variant.Outlined">
+                            @_error
+                        </MudAlert>
+                    }
+
+                    <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2">
+                        <MudButton OnClick="@(() => Nav.NavigateTo("/"))"
+                                   Variant="Variant.Text"
+                                   Disabled="_busy">
+                            Cancel
+                        </MudButton>
+                        <MudButton Color="Color.Primary"
+                                   Variant="Variant.Filled"
+                                   Disabled="_busy || !_formValid"
+                                   OnClick="Submit">
+                            @if (_busy)
+                            {
+                                <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+                                <span class="ml-2">Signing in…</span>
+                            }
+                            else
+                            {
+                                <span>Sign in</span>
+                            }
+                        </MudButton>
+                    </MudStack>
+                </MudStack>
+            </MudForm>
+        </MudPaper>
+
+        <MudText Typo="Typo.caption" Align="Align.Center">
+            Forgot your password? v0.2 will add a reset flow.
+        </MudText>
+    </MudStack>
+</MudContainer>
+
+@code {
+    private MudForm? _form;
+    private bool      _formValid;
+    private bool      _busy;
+    private bool      _showPassword;
+    private string    _email    = "admin@example.com";
+    private string    _password = string.Empty;
+    private string?   _error;
+
+    private async Task Submit()
+    {
+        _error = null;
+        await _form!.Validate();
+        if (!_formValid) return;
+
+        _busy = true;
+        try
+        {
+            var resp = await Api.LoginAsync(new LoginRequest(
+                Email:    _email.Trim().ToLowerInvariant(),
+                Password: _password));
+
+            Snackbar.Add("Signed in — welcome back!", Severity.Success);
+            // Drop the user into the dashboard. The refresh cookie is set by
+            // the server response and will travel automatically on the next
+            // fetch, so no extra hydration step is needed here.
+            Nav.NavigateTo("/");
+        }
+        catch (ApiException ex) when (ex.Code == "invalid_credentials")
+        {
+            _error = "That email and password don't match.";
+        }
+        catch (ApiException ex)
+        {
+            _error = $"{ex.Code}: {ex.Message}";
+        }
+        catch (Exception ex)
+        {
+            _error = $"Couldn't reach the server: {ex.Message}";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

@@ -49,8 +49,10 @@ public static class AuthEndpoints
         CancellationToken ct)
     {
         var bootstrapped = await db.Users.AnyAsync(ct);
+        // There is at most one Instance row (the singleton config), so we
+        // can skip OrderBy entirely. SQLite's provider also can't translate
+        // OrderBy(DateTimeOffset) to SQL, which used to crash this query.
         var siteName     = await db.Instances
-            .OrderBy(i => i.CreatedAt)
             .Select(i => i.SiteName)
             .FirstOrDefaultAsync(ct);
         return Results.Ok(new { bootstrapped, siteName });

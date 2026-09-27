@@ -43,6 +43,12 @@
                     <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
                         The first admin has already been created on this instance.
                         Use the credentials from your onboarding notes to sign in.
+                        @if (_siteNameHint == DefaultSiteName)
+                        {
+                            <br />
+                            <span>Default credentials (when this instance was bootstrapped automatically):
+                                <strong>@DefaultEmail</strong> / <code>@DefaultPassword</code></span>
+                        }
                     </MudAlert>
 
                     <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2">
@@ -140,6 +146,15 @@
 </MudContainer>
 
 @code {
+    // Defaults match `Program.SeedDefaultInstanceAsync` so the wizard pre-fills
+    // the same values the bootstrap inserts on first boot. Operators editing
+    // these should keep them in sync with `SeedDefaultInstanceAsync` in
+    // `src/PersonalCrm.App/Program.cs`.
+    internal const string DefaultSiteName    = "Demo CRM";
+    internal const string DefaultDisplayName = "Admin";
+    internal const string DefaultEmail       = "admin@example.com";
+    internal const string DefaultPassword    = "11111111";
+
     private MudForm?    _form;
     private bool         _formValid;
     private bool         _busy;
@@ -147,10 +162,10 @@
     private bool         _bootstrapped;
     private bool         _statusLoaded;
     private string?      _siteNameHint;
-    private string       _siteName    = "Personal CRM";
-    private string       _displayName = string.Empty;
-    private string       _email       = string.Empty;
-    private string       _password    = string.Empty;
+    private string       _siteName    = DefaultSiteName;
+    private string       _displayName = DefaultDisplayName;
+    private string       _email       = DefaultEmail;
+    private string       _password    = string.Empty;       // password never pre-fills
     private string?      _error;
 
     protected override async Task OnInitializedAsync()

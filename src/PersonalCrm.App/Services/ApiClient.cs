@@ -102,6 +102,25 @@ public sealed class ApiClient
             .ReadFromJsonAsync<SetupStatus>(cancellationToken: ct))!;
     }
 
+    /// <summary>
+    /// Sign in with email + password. On success the server sets the
+    /// <c>pcrm_refresh</c> httpOnly cookie and returns a short-lived access
+    /// token plus its expiry. <see cref="AccessToken"/> is updated so
+    /// subsequent calls automatically attach the bearer header.
+    /// </summary>
+    public async Task<LoginResponse> LoginAsync(LoginRequest req, CancellationToken ct = default)
+    {
+        using var http = BuildClient();
+        var resp = await http.PostAsJsonAsync("/api/auth/login", req, ct);
+        if (!resp.IsSuccessStatusCode)
+        {
+            throw await ToExceptionAsync(resp, "/api/auth/login", ct);
+        }
+        var body = await resp.Content.ReadFromJsonAsync<LoginResponse>(cancellationToken: ct);
+        AccessToken = body!.AccessToken;
+        return body;
+    }
+
     public async Task<ListContactsResponse> ListContactsAsync(
         Guid workspaceId,
         int limit = 50,

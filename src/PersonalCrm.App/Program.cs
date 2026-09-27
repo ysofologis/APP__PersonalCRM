@@ -257,7 +257,17 @@ public class Program
         app.UseRouting();
         app.UseAuthentication();
         app.UseAuthorization();
-        app.UseAntiforgery();
+        // Antiforgery is only meaningful for the Blazor Server interactive
+        // circuit's `<form>` POSTs, which carry an antiforgery token emitted
+        // by the framework. The /api/* JSON endpoints are CSRF-safe on their
+        // own (SameSite=Lax + httpOnly refresh cookies, JSON-only bodies,
+        // explicit content-type checks) so we run antiforgery only for
+        // non-API paths. Without this split the antiforgery middleware was
+        // returning 503 on internal Blazor-driven POSTs to /api/* when the
+        // circuit couldn't surface a fresh token.
+        app.UseWhen(
+            ctx => !ctx.Request.Path.StartsWithSegments("/api"),
+            branch => branch.UseAntiforgery());
 
         app.MapHealthChecks("/healthz");
 
