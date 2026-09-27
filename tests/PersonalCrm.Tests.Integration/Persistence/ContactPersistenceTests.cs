@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using PersonalCrm.Core.Domain;

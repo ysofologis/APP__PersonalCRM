@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using PersonalCrm.Core.Domain;
 using PersonalCrm.Infrastructure.Persistence;
+using PersonalCrm.Contracts.Dtos;
 using PersonalCrm.Tests.Integration.Infrastructure;
 using Xunit;
 
@@ -14,7 +15,7 @@ namespace PersonalCrm.Tests.Integration.Endpoints;
 /// Exercises the v0.1 auth surface documented in <c>docs/V0.1_API.md</c>:
 /// setup, login, refresh, logout, plus the error envelopes.
 /// </summary>
-public class AuthEndpointsTests : IClassFixture<CrmWebAppFactory>
+public class AuthEndpointsTests : IClassFixture<CrmWebAppFactory>, IAsyncLifetime
 {
     private readonly CrmWebAppFactory _factory;
 
@@ -22,6 +23,16 @@ public class AuthEndpointsTests : IClassFixture<CrmWebAppFactory>
     {
         _factory = factory;
     }
+
+    /// <summary>
+    /// Wipe the in-memory SQLite to a virgin state before the first test in
+    /// this class runs. The fixture is shared across all tests in the class,
+    /// and the auth surface assumes a fresh DB (e.g. /api/setup is the first
+    /// write; subsequent calls expect 409). xUnit calls this once per class.
+    /// </summary>
+    public Task InitializeAsync() => _factory.ResetAsync();
+
+    public Task DisposeAsync() => Task.CompletedTask;
 
     [Fact]
     public async Task Setup_creates_admin_and_personal_workspace()
@@ -45,7 +56,7 @@ public class AuthEndpointsTests : IClassFixture<CrmWebAppFactory>
 
         // The setup endpoint also issues a refresh cookie.
         resp.Headers.Should().Contain(h => h.Key == "Set-Cookie"
-            && h.Value.Any(v => v.StartsWith("pcrm_refresh=")));
+            && h.Value.Any(v => v.StartsWith("pcrm_refresh=", StringComparison.Ordinal)));
 
         // The DB now has the user, the workspace, the membership, and the Instance row.
         await using var scope = _factory.Services.CreateAsyncScope();
@@ -137,7 +148,7 @@ public class AuthEndpointsTests : IClassFixture<CrmWebAppFactory>
         body.ExpiresAt.Should().BeAfter(DateTimeOffset.UtcNow);
 
         resp.Headers.Should().Contain(h => h.Key == "Set-Cookie"
-            && h.Value.Any(v => v.StartsWith("pcrm_refresh=")));
+            && h.Value.Any(v => v.StartsWith("pcrm_refresh=", StringComparison.Ordinal)));
     }
 
     [Fact]
@@ -208,7 +219,14 @@ public class AuthEndpointsTests : IClassFixture<CrmWebAppFactory>
         var logout = await setupClient.PostAsync("/api/auth/logout", content: null);
 
         logout.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        // Cookie-clearing headers can be emitted as either the older
+        // `expires=Thu, 01 Jan 1970 00:00:00 GMT` directive OR the newer
+        // `max-age=0` shorthand, depending on the ASP.NET Core version. We
+        // accept either so the test stays stable across SDK upgrades.
         logout.Headers.Should().Contain(h => h.Key == "Set-Cookie"
-            && h.Value.Any(v => v.StartsWith("pcrm_refresh=") && v.Contains("max-age=0")));
+            && h.Value.Any(v =>
+                v.StartsWith("pcrm_refresh=", StringComparison.Ordinal) &&
+                (v.Contains("max-age=0") ||
+                 v.Contains("expires=Thu, 01 Jan 1970", StringComparison.Ordinal))));
     }
 }

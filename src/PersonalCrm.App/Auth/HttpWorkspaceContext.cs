@@ -68,8 +68,7 @@ public sealed class HttpWorkspaceContext : IWorkspaceContext
         public bool IsInstanceAdmin { get; init; }
         public IReadOnlySet<Guid> AccessibleWorkspaceIds { get; init; } = new HashSet<Guid>();
         public Guid? CurrentWorkspaceId { get; init; }
-        public IReadOnlyDictionary<Guid, WorkspaceRole> Memberships { get; init; }
-            = new Dictionary<Guid, WorkspaceRole>();
+        public Dictionary<Guid, WorkspaceRole> Memberships { get; init; } = new();
     }
 
     private ContextData LoadFromDatabase()
@@ -123,7 +122,7 @@ public sealed class HttpWorkspaceContext : IWorkspaceContext
         // For MVP we read it from a header (X-Workspace-Id). Production will
         // also accept it from the URL segment and a signed cookie.
         Guid? current = null;
-        if (http.Request.Headers.TryGetValue("X-Workspace-Id", out var wsHeader)
+        if (http!.Request.Headers.TryGetValue("X-Workspace-Id", out var wsHeader)
             && Guid.TryParse(wsHeader.ToString(), out var wsId)
             && ids.Contains(wsId))
         {

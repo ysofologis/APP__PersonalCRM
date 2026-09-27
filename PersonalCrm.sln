@@ -16,7 +16,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PersonalCrm.Core", "src\Per
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PersonalCrm.Infrastructure", "src\PersonalCrm.Infrastructure\PersonalCrm.Infrastructure.csproj", "{A0000000-0000-0000-0000-000000000003}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PersonalCrm.Shared", "src\PersonalCrm.Shared\PersonalCrm.Shared.csproj", "{A0000000-0000-0000-0000-000000000004}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PersonalCrm.Contracts", "src\PersonalCrm.Contracts\PersonalCrm.Contracts.csproj", "{A0000000-0000-0000-0000-000000000004}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PersonalCrm.Migrations", "src\PersonalCrm.Migrations\PersonalCrm.Migrations.csproj", "{A0000000-0000-0000-0000-000000000005}"
 EndProject

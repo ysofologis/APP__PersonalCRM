@@ -2,8 +2,8 @@
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <RootNamespace>PersonalCrm.Shared</RootNamespace>
-    <AssemblyName>PersonalCrm.Shared</AssemblyName>
+    <RootNamespace>PersonalCrm.Contracts</RootNamespace>
+    <AssemblyName>PersonalCrm.Contracts</AssemblyName>
     <Description>DTOs, contracts, and enums shared between Server and WASM.</Description>
   </PropertyGroup>
 

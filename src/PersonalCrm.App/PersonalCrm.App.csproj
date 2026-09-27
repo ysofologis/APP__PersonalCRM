@@ -11,7 +11,7 @@
   <ItemGroup>
     <ProjectReference Include="..\PersonalCrm.Core\PersonalCrm.Core.csproj" />
     <ProjectReference Include="..\PersonalCrm.Infrastructure\PersonalCrm.Infrastructure.csproj" />
-    <ProjectReference Include="..\PersonalCrm.Shared\PersonalCrm.Shared.csproj" />
+    <ProjectReference Include="..\PersonalCrm.Contracts\PersonalCrm.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>

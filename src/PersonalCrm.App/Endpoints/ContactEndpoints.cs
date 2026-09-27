@@ -38,9 +38,8 @@ public static class ContactEndpoints
     // ---- handlers ---------------------------------------------------------
 
     private static async Task<Results<
-        Ok<IReadOnlyList<ContactDto>>,
-        NotFound,
-        Forbid>> ListContacts(
+        Ok<ListContactsResponse>,
+        ForbidHttpResult>> ListContacts(
         Guid workspaceId,
         AppDbContext db,
         IWorkspaceContext ctx,
@@ -62,10 +61,10 @@ public static class ContactEndpoints
                 c.CreatedAt, c.UpdatedAt))
             .ToListAsync(ct);
 
-        return TypedResults.Ok((IReadOnlyList<ContactDto>)rows);
+        return TypedResults.Ok(new ListContactsResponse(rows, NextOffset: null));
     }
 
-    private static async Task<Results<Ok<ContactDto>, NotFound, Forbid>> GetContact(
+    private static async Task<Results<Ok<ContactDto>, NotFound, ForbidHttpResult>> GetContact(
         Guid workspaceId,
         Guid contactId,
         AppDbContext db,
@@ -84,9 +83,10 @@ public static class ContactEndpoints
     }
 
     private static async Task<Results<
+        
         CreatedAtRoute<ContactDto>,
         BadRequest<ApiError>,
-        Forbid>> CreateContact(
+        ForbidHttpResult>> CreateContact(
         Guid workspaceId,
         CreateContactRequest request,
         AppDbContext db,
@@ -127,11 +127,12 @@ public static class ContactEndpoints
     }
 
     private static async Task<Results<
+        
         Ok<ContactDto>,
         BadRequest<ApiError>,
         NotFound,
         Conflict<ApiError>,
-        Forbid>> UpdateContact(
+        ForbidHttpResult>> UpdateContact(
         Guid workspaceId,
         Guid contactId,
         UpdateContactRequest request,
@@ -174,7 +175,7 @@ public static class ContactEndpoints
         return TypedResults.Ok(MapToDto(entity));
     }
 
-    private static async Task<Results<NoContent, NotFound, Forbid>> DeleteContact(
+    private static async Task<Results<NoContent, NotFound, ForbidHttpResult>> DeleteContact(
         Guid workspaceId,
         Guid contactId,
         AppDbContext db,
@@ -207,5 +208,8 @@ public static class ContactEndpoints
             c.CreatedAt, c.UpdatedAt);
 }
 
-/// <summary>Uniform JSON error envelope for all API endpoints.</summary>
-public record ApiError(string Code, string Message);
+/// <summary>
+/// Uniform JSON error envelope for all API endpoints — now defined in
+/// <c>PersonalCrm.Contracts.Dtos.ApiError</c> so the Blazor client can
+/// deserialise server errors without referencing the App layer.
+/// </summary>

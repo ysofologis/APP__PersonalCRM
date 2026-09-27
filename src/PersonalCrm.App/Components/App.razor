@@ -25,3 +25,39 @@
 </body>
 
 </html>
+
+@inject PersonalCrm.App.Services.ApiClient Api
+@inject IJSRuntime Js
+
+@code {
+    private bool _hydrated;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_hydrated)
+        {
+            try
+            {
+                var userIdText = await Js.InvokeAsync<string?>("sessionStorage.getItem", "pcrm.userId");
+                var wsIdText   = await Js.InvokeAsync<string?>("sessionStorage.getItem", "pcrm.workspaceId");
+                var token      = await Js.InvokeAsync<string?>("sessionStorage.getItem", "pcrm.accessToken");
+
+                if (Guid.TryParse(userIdText, out var userId))
+                {
+                    Api.UserId      = userId;
+                    Api.AccessToken = token;
+                }
+                if (Guid.TryParse(wsIdText, out var wsId))
+                {
+                    Api.WorkspaceId = wsId;
+                }
+                _hydrated = true;
+            }
+            catch
+            {
+                // sessionStorage not available (e.g. SSR disabled) — ignore.
+            }
+        }
+    }
+}
+

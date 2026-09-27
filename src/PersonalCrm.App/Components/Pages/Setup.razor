@@ -1,0 +1,252 @@
+@page "/setup"
+@using PersonalCrm.App.Services
+@using PersonalCrm.Contracts.Dtos
+@inject ApiClient        Api
+@inject ISnackbar         Snackbar
+@inject NavigationManager Nav
+@inject IJSRuntime        JS
+
+<PageTitle>Setup — Personal CRM</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="pa-6">
+    <MudStack Spacing="4">
+        <MudStack Spacing="1">
+            <MudText Typo="Typo.h4">@(_bootstrapped ? "Already set up" : "Welcome to Personal CRM")</MudText>
+            <MudText Typo="Typo.body1">
+                @if (_bootstrapped)
+                {
+                    <span>This instance has already been bootstrapped.
+                          @if (!string.IsNullOrWhiteSpace(_siteNameHint))
+                          {
+                              <span> Site name: <strong>@_siteNameHint</strong>.</span>
+                          }
+                          The setup wizard can only run once on a fresh instance —
+                          sign in with the credentials that were created during setup,
+                          or contact the admin that bootstrapped this server.</span>
+                }
+                else
+                {
+                    <span>This is a fresh instance. Create the first admin account below to get started.
+                          The wizard can only run once.</span>
+                }
+            </MudText>
+        </MudStack>
+
+        @if (!_statusLoaded)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else if (_bootstrapped)
+        {
+            <MudPaper Outlined="true" Class="pa-4">
+                <MudStack Spacing="3">
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                        The first admin has already been created on this instance.
+                        Use the credentials from your onboarding notes to sign in.
+                    </MudAlert>
+
+                    <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2">
+                        <MudButton OnClick="@(() => Nav.NavigateTo("/"))"
+                                   Variant="Variant.Text">
+                            Go to dashboard
+                        </MudButton>
+                        <MudButton Color="Color.Primary"
+                                   Variant="Variant.Filled"
+                                   OnClick="@(() => Nav.NavigateTo("/login"))">
+                            Sign in
+                        </MudButton>
+                    </MudStack>
+                </MudStack>
+            </MudPaper>
+        }
+        else
+        {
+        <MudPaper Outlined="true" Class="pa-4">
+            <MudForm @ref="_form" @bind-IsValid="_formValid">
+                <MudStack Spacing="3">
+
+                    <MudTextField T="string"
+                                  Label="Site name"
+                                  Placeholder="e.g. My CRM"
+                                  @bind-Value="_siteName"
+                                  Variant="Variant.Outlined" />
+
+                    <MudTextField T="string"
+                                  Label="Display name"
+                                  Required="true"
+                                  RequiredError="Display name is required."
+                                  @bind-Value="_displayName"
+                                  Variant="Variant.Outlined" />
+
+                    <MudTextField T="string"
+                                  Label="Email"
+                                  Required="true"
+                                  RequiredError="Email is required."
+                                  InputType="InputType.Email"
+                                  Validation="@(new Func<string, IEnumerable<string>>(EmailValidator))"
+                                  @bind-Value="_email"
+                                  Variant="Variant.Outlined" />
+
+                    <MudTextField T="string"
+                                  Label="Password"
+                                  Required="true"
+                                  RequiredError="Password is required."
+                                  InputType="InputType.Password"
+                                  Adornment="Adornment.End"
+                                  AdornmentIcon="@(_showPassword ? Icons.Material.Filled.Visibility : Icons.Material.Filled.VisibilityOff)"
+                                  OnAdornmentClick="@(() => _showPassword = !_showPassword)"
+                                  Validation="@(new Func<string, IEnumerable<string>>(PasswordValidator))"
+                                  HelperText="Min. 8 characters. Must not contain the local part of your email."
+                                  @bind-Value="_password"
+                                  Variant="Variant.Outlined" />
+
+                    @if (!string.IsNullOrEmpty(_error))
+                    {
+                        <MudAlert Severity="Severity.Error" Variant="Variant.Outlined">
+                            @_error
+                        </MudAlert>
+                    }
+
+                    <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2">
+                        <MudButton OnClick="@(() => Nav.NavigateTo("/"))"
+                                   Variant="Variant.Text"
+                                   Disabled="_busy">
+                            Skip — explore the marketing page
+                        </MudButton>
+                        <MudButton Color="Color.Primary"
+                                   Variant="Variant.Filled"
+                                   Disabled="_busy || !_formValid"
+                                   OnClick="Submit">
+                            @if (_busy)
+                            {
+                                <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+                                <span class="ml-2">Setting up…</span>
+                            }
+                            else
+                            {
+                                <span>Create admin</span>
+                            }
+                        </MudButton>
+                    </MudStack>
+                </MudStack>
+            </MudForm>
+        </MudPaper>
+        }
+
+        <MudText Typo="Typo.caption" Align="Align.Center">
+            Your data lives on this machine. Nothing is sent to any cloud.
+        </MudText>
+    </MudStack>
+</MudContainer>
+
+@code {
+    private MudForm?    _form;
+    private bool         _formValid;
+    private bool         _busy;
+    private bool         _showPassword;
+    private bool         _bootstrapped;
+    private bool         _statusLoaded;
+    private string?      _siteNameHint;
+    private string       _siteName    = "Personal CRM";
+    private string       _displayName = string.Empty;
+    private string       _email       = string.Empty;
+    private string       _password    = string.Empty;
+    private string?      _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var status       = await Api.GetSetupStatusAsync();
+            _bootstrapped   = status.Bootstrapped;
+            _siteNameHint   = status.SiteName;
+            _statusLoaded   = true;
+        }
+        catch
+        {
+            // If the status probe fails we silently fall through to the
+            // wizard; on POST /api/setup the server will return 409 if the
+            // instance is in fact already bootstrapped.
+            _statusLoaded = true;
+        }
+    }
+
+    private IEnumerable<string> EmailValidator(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            yield return "Email is required.";
+            yield break;
+        }
+        if (!value.Contains('@') || value.Length < 3)
+        {
+            yield return "That doesn't look like a valid email.";
+        }
+    }
+
+    private IEnumerable<string> PasswordValidator(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            yield return "Password is required.";
+            yield break;
+        }
+        if (value.Length < 8)
+        {
+            yield return "Password must be at least 8 characters.";
+        }
+        var local = _email.Split('@', 2)[0];
+        if (local.Length >= 4 && value.Contains(local, StringComparison.OrdinalIgnoreCase))
+        {
+            yield return "Password must not contain the local part of the email address.";
+        }
+    }
+
+    private async Task Submit()
+    {
+        _error = null;
+        await _form!.Validate();
+        if (!_formValid) return;
+
+        _busy = true;
+        try
+        {
+            var resp = await Api.SetupAsync(new SetupRequest(
+                Email:       _email.Trim().ToLowerInvariant(),
+                Password:    _password,
+                DisplayName: _displayName.Trim(),
+                SiteName:    string.IsNullOrWhiteSpace(_siteName) ? null : _siteName.Trim()));
+
+            // Stash the user + workspace ids in sessionStorage so subsequent
+            // navigations can hydrate ApiClient without a full login round-trip.
+            // The refresh cookie is set by the server response and will travel
+            // automatically on the next fetch.
+            await JS.InvokeVoidAsync("sessionStorage.setItem", "pcrm.userId",      resp.UserId.ToString());
+            await JS.InvokeVoidAsync("sessionStorage.setItem", "pcrm.workspaceId", resp.WorkspaceId.ToString());
+            await JS.InvokeVoidAsync("sessionStorage.setItem", "pcrm.accessToken", resp.UserId.ToString()); // v0.1 stub token
+
+            Snackbar.Add("Setup complete — welcome!", Severity.Success);
+            Nav.NavigateTo("/");
+        }
+        catch (ApiException ex) when (ex.Code == "setup_already_complete")
+        {
+            _error = "The setup wizard has already been completed on this instance. Sign in instead.";
+        }
+        catch (ApiException ex) when (ex.Code == "weak_password")
+        {
+            _error = ex.Message;
+        }
+        catch (ApiException ex)
+        {
+            _error = $"{ex.Code}: {ex.Message}";
+        }
+        catch (Exception ex)
+        {
+            _error = $"Couldn't reach the server: {ex.Message}";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

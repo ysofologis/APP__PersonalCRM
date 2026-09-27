@@ -1,15 +1,18 @@
 # docker-compose.yml
 #
-# Default Personal CRM stack — single container, SQLite, local filesystem for attachments.
+# Personal CRM stack — single container plus optional MinIO for S3-compatible
+# attachment storage. Bring the whole stack up with:
 #
-# Usage:
 #   docker compose -f docker/docker-compose.yml up -d
-#   docker compose -f docker/docker-compose.yml logs -f
-#   docker compose -f docker/docker-compose.yml down
 #
-# To enable S3-compatible attachments (MinIO), uncomment the "minio" and "createbuckets"
-# services, set AttachmentStore__Provider=s3 in the "app" environment, and add the
-# S3 env vars listed below the local ones.
+# Notes:
+#   - The app data directory (./data) is bind-mounted and contains the SQLite
+#     database, attachment blobs (when running in local mode), and the
+#     per-instance signing keys.
+#   - MinIO credentials default to crm / S@gapo123 (see MINIO_ROOT_USER /
+#     MINIO_ROOT_PASSWORD below). Override via env or a `.env` file.
+#   - The "createbuckets" one-shot initialises the `personal-crm` bucket on
+#     first boot so the app can write to it immediately.
 
 name: personal-crm
 
@@ -26,46 +29,42 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      # All persistent state lives in ./data
       - ./data:/app/data
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:8080
 
-      # --- Database ---
-      # SQLite lives inside /app/data; default is a single file with WAL.
+      # --- Database (SQLite, WAL mode) ---
       ConnectionStrings__Default: "Data Source=/app/data/personal-crm.db;Cache=Shared"
 
-      # --- Attachment storage ---
-      # Default: local filesystem at /app/data/attachments
-      AttachmentStore__Provider: local
-      AttachmentStore__LocalRoot: /app/data/attachments
+      # --- Attachment storage: S3-compatible via the sidecar MinIO ---
+      AttachmentStore__Provider: s3
+      AttachmentStore__S3__Endpoint: "http://minio:9000"
+      AttachmentStore__S3__Bucket: "personal-crm"
+      AttachmentStore__S3__Region: "us-east-1"
+      AttachmentStore__S3__AccessKey: "crm"
+      AttachmentStore__S3__SecretKey: "S@gapo123"
+      AttachmentStore__S3__ForcePathStyle: "true"
 
-      # --- To enable S3 instead, set Provider=s3 and uncomment these ---
-      # AttachmentStore__Provider: s3
-      # AttachmentStore__S3__Endpoint: http://minio:9000
-      # AttachmentStore__S3__Bucket: personal-crm
-      # AttachmentStore__S3__Region: us-east-1
-      # AttachmentStore__S3__AccessKey: minioadmin
-      # AttachmentStore__S3__SecretKey: minioadmin
-      # AttachmentStore__S3__ForcePathStyle: "true"
+      # To switch to local filesystem attachments instead, set:
+      #   AttachmentStore__Provider=local
+      #   AttachmentStore__LocalRoot=/app/data/attachments
 
-      # --- Auth (REQUIRED: replace these in production) ---
-      # Generate a strong random value: openssl rand -hex 64
+      # --- Auth (REQUIRED: generate a strong random value) ---
+      # Generate via: openssl rand -hex 32
       Auth__JwtSigningKey: "REPLACE_ME_WITH_AT_LEAST_64_HEX_CHARS"
       Auth__JwtIssuer: "http://localhost:8080"
       Auth__JwtAudience: "personal-crm"
       Auth__AccessTokenMinutes: "15"
       Auth__RefreshTokenDays: "30"
 
-      # --- Email (optional at first-run; configure via UI later) ---
+      # --- SMTP (optional) ---
       # Smtp__Host: smtp.example.com
       # Smtp__Port: "587"
       # Smtp__Username: crm@example.com
       # Smtp__Password: changeme
       # Smtp__FromAddress: crm@example.com
       # Smtp__FromName: "Personal CRM"
-      # Smtp__UseStartTls: "true"
 
       # --- Web push (optional) ---
       # Vapid__PublicKey: "..."
@@ -75,7 +74,11 @@ services:
       # --- Observability (optional) ---
       # Otel__OtlpEndpoint: http://otel-collector:4317
       # Otel__ServiceName: personal-crm
-
+    depends_on:
+      minio:
+        condition: service_healthy
+      createbuckets:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8080/healthz || exit 1"]
       interval: 30s
@@ -84,29 +87,38 @@ services:
       start_period: 30s
 
   # ---------------------------------------------------------------------------
-  # Optional S3-compatible object storage (uncomment to enable)
+  # S3-compatible object storage (sidecar MinIO).
   # ---------------------------------------------------------------------------
-  # minio:
-  #   image: minio/minio:latest
-  #   container_name: personal-crm-minio
-  #   restart: unless-stopped
-  #   command: server /data --console-address ":9001"
-  #   environment:
-  #     MINIO_ROOT_USER: minioadmin
-  #     MINIO_ROOT_PASSWORD: minioadmin
-  #   volumes:
-  #     - ./minio-data:/data
-  #   ports:
-  #     - "9000:9000"
-  #     - "9001:9001"
-  #
-  # createbuckets:
-  #   image: minio/mc:latest
-  #   depends_on:
-  #     - minio
-  #   entrypoint: >
-  #     /bin/sh -c "
-  #     mc alias set local http://minio:9000 minioadmin minioadmin &&
-  #     mc mb -p local/personal-crm || true &&
-  #     mc anonymous set none local/personal-crm
-  #     "
+  minio:
+    image: minio/minio:latest
+    container_name: personal-crm-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: "crm"
+      MINIO_ROOT_PASSWORD: "S@gapo123"
+    volumes:
+      - ./minio-data:/data
+    ports:
+      - "9000:9000"      # S3 API
+      - "9001:9001"      # Web console
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # One-shot job that creates the bucket the app expects, then exits.
+  createbuckets:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 'crm' 'S@gapo123' &&
+      mc mb -p local/personal-crm || true &&
+      mc anonymous set none local/personal-crm
+      "
+    restart: "no"

@@ -13,6 +13,7 @@ using PersonalCrm.Core.Domain;
 using PersonalCrm.Infrastructure.Persistence;
 using PersonalCrm.Infrastructure.Persistence.WorkspaceContext;
 using PersonalCrm.Contracts.Dtos;
+using PersonalCrm.App;
 
 namespace PersonalCrm.Tests.Integration.Infrastructure;
 
@@ -45,7 +46,11 @@ public class CrmWebAppFactory : WebApplicationFactory<Program>
                 ["ConnectionStrings:Default"]       = _connection.ConnectionString,
                 ["AttachmentStore:Provider"]       = "local",
                 ["AttachmentStore:Local:Root"]     = Path.Combine(Path.GetTempPath(), $"pcrm-attachments-{Guid.NewGuid():N}"),
-                ["Auth:JwtSigningKey"]             = "test_signing_key_must_be_at_least_64_hex_chars_long_aaaaaaaaaaaaaaaaaaaaaaa"
+                ["Auth:JwtSigningKey"]             = "test_signing_key_must_be_at_least_64_hex_chars_long_aaaaaaaaaaaaaaaaaaaaaaa",
+                // Disable the dev-mode bootstrap so tests start with a virgin DB
+                // and `POST /api/setup` behaves like the original suite assumes
+                // (200 on first call, 409 on subsequent).
+                ["Bootstrap:SeedDefault"]          = "false"
             });
         });
 
@@ -107,6 +112,34 @@ public class CrmWebAppFactory : WebApplicationFactory<Program>
 
         await db.SaveChangesAsync();
         return (userId, wsId);
+    }
+
+    /// <summary>Wipe user/workspace/instance rows so the next test starts from a virgin DB.</summary>
+    public async Task ResetAsync()
+    {
+        await using var scope = Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        // Order matters because of FKs.
+        await db.Database.ExecuteSqlRawAsync(
+            "DELETE FROM workspace_members; " +
+            "DELETE FROM outbox_entries; " +
+            "DELETE FROM audit_logs; " +
+            "DELETE FROM reminders; " +
+            "DELETE FROM contact_tags; " +
+            "DELETE FROM contact_circles; " +
+            "DELETE FROM contact_methods; " +
+            "DELETE FROM notes; " +
+            "DELETE FROM interaction_contacts; " +
+            "DELETE FROM interactions; " +
+            "DELETE FROM attachments; " +
+            "DELETE FROM contacts; " +
+            "DELETE FROM tags; " +
+            "DELETE FROM circles; " +
+            "DELETE FROM workspaces; " +
+            "DELETE FROM user_sessions; " +
+            "DELETE FROM users; " +
+            "DELETE FROM instances;");
     }
 
     /// <summary>Create an HttpClient that authenticates as the given user.</summary>

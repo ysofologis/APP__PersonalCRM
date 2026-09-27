@@ -12,7 +12,7 @@
     <ProjectReference Include="..\..\src\PersonalCrm.App\PersonalCrm.App.csproj" />
     <ProjectReference Include="..\..\src\PersonalCrm.Core\PersonalCrm.Core.csproj" />
     <ProjectReference Include="..\..\src\PersonalCrm.Infrastructure\PersonalCrm.Infrastructure.csproj" />
-    <ProjectReference Include="..\..\src\PersonalCrm.Shared\PersonalCrm.Shared.csproj" />
+    <ProjectReference Include="..\..\src\PersonalCrm.Contracts\PersonalCrm.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>

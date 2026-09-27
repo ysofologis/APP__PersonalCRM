@@ -1,3 +1,4 @@
+using PersonalCrm.App.Endpoints;
 using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;

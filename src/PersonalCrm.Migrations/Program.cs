@@ -38,7 +38,11 @@ public static class Program
             .ConfigureServices(services =>
             {
                 services.AddDbContext<AppDbContext>(opt =>
-                    opt.UseSqlite(connStr, o => o.CommandTimeout(30))
+                    opt.UseSqlite(connStr, sqlite =>
+                    {
+                        sqlite.MigrationsAssembly(typeof(AppDbContext).Assembly.GetName().Name);
+                        sqlite.MigrationsHistoryTable("__EFMigrationsHistory");
+                    })
                        .EnableSensitiveDataLogging(false));
             })
             .ConfigureLogging(lb => lb.AddSimpleConsole().SetMinimumLevel(LogLevel.Warning))

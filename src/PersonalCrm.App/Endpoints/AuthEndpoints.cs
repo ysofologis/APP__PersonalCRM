@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using PersonalCrm.Contracts.Dtos;
 using PersonalCrm.Core.Domain;
 using PersonalCrm.Infrastructure.Persistence;
 using PersonalCrm.Infrastructure.Security;
@@ -24,6 +25,12 @@ public static class AuthEndpoints
               .WithTags("Auth")
               .AllowAnonymous();
 
+        // Status — used by the /setup wizard to detect whether the bootstrap
+        // already populated the instance, or another admin finished setup.
+        routes.MapGet("/api/setup/status", SetupStatusAsync)
+              .WithTags("Auth")
+              .AllowAnonymous();
+
         // Auth — public.
         var auth = routes.MapGroup("/api/auth").WithTags("Auth").AllowAnonymous();
 
@@ -35,6 +42,19 @@ public static class AuthEndpoints
     }
 
     // ---- Setup ------------------------------------------------------------
+
+    /// <summary>Read-only status of whether the instance has been bootstrapped.</summary>
+    private static async Task<IResult> SetupStatusAsync(
+        AppDbContext db,
+        CancellationToken ct)
+    {
+        var bootstrapped = await db.Users.AnyAsync(ct);
+        var siteName     = await db.Instances
+            .OrderBy(i => i.CreatedAt)
+            .Select(i => i.SiteName)
+            .FirstOrDefaultAsync(ct);
+        return Results.Ok(new { bootstrapped, siteName });
+    }
 
     private static async Task<IResult> SetupAsync(
         SetupRequest request,
@@ -57,7 +77,7 @@ public static class AuthEndpoints
         }
 
         var pwdCheck = ValidatePassword(request.Password, request.Email);
-        if (pwdCheck is not null) return Results.BadRequest(pwdCheck.Value);
+        if (pwdCheck is not null) return Results.BadRequest(pwdCheck);
 
         var now      = DateTimeOffset.UtcNow;
         var userId   = Guid.NewGuid();
@@ -67,7 +87,7 @@ public static class AuthEndpoints
         {
             Id              = userId,
             Email           = request.Email.Trim().ToLowerInvariant(),
-            PasswordHash    = hasher.Hash(request.Password),
+            PasswordHash    = PasswordHasher.Hash(request.Password),
             DisplayName     = request.DisplayName.Trim(),
             IsInstanceAdmin = true,
             IsEmailVerified = true,        // first user is trusted; verify flow lands in v0.2
@@ -136,7 +156,7 @@ public static class AuthEndpoints
         // Constant-time-ish: hash a dummy even on miss to even out the timing.
         var stored = row?.PasswordHash
                      ?? "$argon2id$v=19$m=65536,t=3,p=4$AAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
-        var ok     = hasher.Verify(request.Password, stored);
+        var ok     = PasswordHasher.Verify(request.Password, stored);
 
         if (row is null || !ok)
         {
@@ -201,9 +221,9 @@ public static class AuthEndpoints
 
     private static ApiError? ValidatePassword(string password, string email)
     {
-        if (password.Length < 12)
+        if (password.Length < 8)
         {
-            return new ApiError("weak_password", "Password must be at least 12 characters.");
+            return new ApiError("weak_password", "Password must be at least 8 characters.");
         }
 
         var local = email.Split('@', 2)[0];
@@ -216,10 +236,4 @@ public static class AuthEndpoints
         return null;
     }
 }
-
-// ---- DTOs (kept local to avoid bloating Shared) -----------------------------
-
-public record SetupRequest(string Email, string Password, string DisplayName, string? SiteName);
-public record SetupResponse(Guid UserId, Guid WorkspaceId);
-public record LoginRequest(string Email, string Password);
-public record LoginResponse(string AccessToken, DateTimeOffset ExpiresAt);
+// Request/response records for the auth endpoints live in PersonalCrm.Contracts.Dtos.
